@@ -46,14 +46,35 @@ import android.widget.Toast;
 
 import com.example.android.common.logger.Log;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * This fragment controls Bluetooth to communicate with other devices.
  */
 public class BluetoothChatFragment extends Fragment {
+    private String lastPhrase;
+    private static final String REPEAT_CODE = "17";
 
+    static Map<String,String> phraseMap = new HashMap<String, String>(){{
+        put("01","Can I use your washroom?");
+        put("03","Which place is this?");
+        put("06","Switch off the light please");
+        put("08","Can you help me?");
+        put("09","I am hungry");
+        put("0B","Wait for some time");
+        put("0C","We are queens");
+        put("0D","Pardon");
+        put("0F","Thank you");
+        put("10","My work is completed");
+        put("11","I am not feeling well. Please call the doctor");
+        put("1F","May I ask a question?");
+        put("0E","Hello, Good morning");
+        put("19","Have a nice day");
+        put("18","Our project name is An approach to glove based gesture recognition and voice conversation system for impair patient");
+    }};
     private static final String TAG = "BluetoothChatFragment";
 
     // Intent request codes
@@ -181,26 +202,26 @@ public class BluetoothChatFragment extends Fragment {
         mConversationView.setAdapter(mConversationArrayAdapter);
 
         // Initialize the compose field with a listener for the return key
-        mOutEditText.setOnEditorActionListener(mWriteListener);
+//        mOutEditText.setOnEditorActionListener(mWriteListener);
 
         // Initialize the send button with a listener that for click events
-        mSendButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                View view = getView();
-                if (null != view) {
-                    TextView textView = (TextView) view.findViewById(R.id.edit_text_out);
-                    String message = textView.getText().toString();
-                    sendMessage(message);
-                }
-            }
-        });
+//        mSendButton.setOnClickListener(new View.OnClickListener() {
+//            public void onClick(View v) {
+//                // Send a message using content of the edit text widget
+//                View view = getView();
+//                if (null != view) {
+//                    TextView textView = (TextView) view.findViewById(R.id.edit_text_out);
+//                    String message = textView.getText().toString();
+//                    sendMessage(message);
+//                }
+//            }
+//        });
 
         // Initialize the BluetoothChatService to perform bluetooth connections
         mChatService = new BluetoothChatService(getActivity(), mHandler);
 
         // Initialize the buffer for outgoing messages
-        mOutStringBuffer = new StringBuffer("");
+//        mOutStringBuffer = new StringBuffer("");
     }
 
     /**
@@ -314,14 +335,20 @@ public class BluetoothChatFragment extends Fragment {
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
-                    String readMessage = new String(readBuf, 0, msg.arg1);
+                    String codeReceived = new String(readBuf, 0, msg.arg1);
+                    if (codeReceived.equals(REPEAT_CODE)){
+                        codeReceived = lastPhrase;
+                    }
+                    if (phraseMap.containsKey(codeReceived)){
+                        lastPhrase = codeReceived;
+                    }
                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-                        textToSpeech.speak(readMessage, TextToSpeech.QUEUE_FLUSH, null);
+                        textToSpeech.speak(phraseMap.get(codeReceived), TextToSpeech.QUEUE_FLUSH, null);
                     }else {
-                        textToSpeech.speak(readMessage, TextToSpeech.QUEUE_FLUSH, null,UUID.randomUUID().toString());
+                        textToSpeech.speak(phraseMap.get(codeReceived), TextToSpeech.QUEUE_FLUSH, null,UUID.randomUUID().toString());
                     }
 
-                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
+                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + codeReceived);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name
